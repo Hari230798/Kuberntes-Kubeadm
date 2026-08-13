@@ -1,0 +1,28 @@
+replicaCount: 2
+
+image:
+  # Change this to your own Docker Hub (or ECR) repository.
+  repository: your-dockerhub-username/devops-demo
+  pullPolicy: IfNotPresent
+  # This tag is updated automatically by the Jenkins pipeline (GitOps).
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: devops-demo.local
+  path: /
+  pathType: Prefix
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
