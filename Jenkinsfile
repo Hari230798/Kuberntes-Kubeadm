@@ -1,5 +1,7 @@
 pipeline {
- agent any
+ agent {
+label 'jenkins-worker01'
+}
  stages {
   stage('Terraform Init'){steps{sh 'cd terraform && terraform init'}}
   stage('Terraform Plan'){steps{sh 'cd terraform && terraform plan -out=tfplan'}}
