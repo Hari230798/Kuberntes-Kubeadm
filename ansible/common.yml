@@ -4,45 +4,110 @@
 
   tasks:
 
-  - name: Disable swap
-    shell: |
-      swapoff -a
-      sed -i '/ swap / s/^/#/' /etc/fstab
+    - name: Disable swap
+      shell: |
+        swapoff -a
+        sed -i '/ swap / s/^/#/' /etc/fstab
 
-  - name: Install dependencies
-    apt:
-      name:
-        - apt-transport-https
-        - ca-certificates
-        - curl
-        - gnupg
-      state: present
-      update_cache: yes
+    - name: Load kernel modules
+      shell: |
+        modprobe overlay
+        modprobe br_netfilter
 
-  - name: Install containerd
-    apt:
-      name: containerd
-      state: present
+    - name: Persist kernel modules
+      copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
 
-  - name: Create containerd config
-    shell: |
-      mkdir -p /etc/containerd
-      containerd config default > /etc/containerd/config.toml
+    - name: Configure Kubernetes networking
+      copy:
+        dest: /etc/sysctl.d/kubernetes.conf
+        content: |
+          net.bridge.bridge-nf-call-ip6tables = 1
+          net.bridge.bridge-nf-call-iptables = 1
+          net.ipv4.ip_forward = 1
 
-  - name: Restart containerd
-    service:
-      name: containerd
-      state: restarted
+    - name: Apply sysctl settings
+      shell: sysctl --system
 
-  - name: Install Kubernetes packages
-    shell: |
-      curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | \
-      gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    - name: Install dependencies
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - software-properties-common
+          - conntrack
+          - socat
+          - ebtables
+          - ethtool
+        state: present
+        update_cache: yes
 
-      echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /' > /etc/apt/sources.list.d/kubernetes.list
+    - name: Install containerd
+      apt:
+        name: containerd
+        state: present
 
-      apt update
+    - name: Create containerd config directory
+      file:
+        path: /etc/containerd
+        state: directory
 
-      apt install -y kubelet kubeadm kubectl
+    - name: Generate containerd config
+      shell: |
+        containerd config default > /etc/containerd/config.toml
 
-      apt-mark hold kubelet kubeadm kubectl
+    - name: Enable SystemdCgroup
+      replace:
+        path: /etc/containerd/config.toml
+        regexp: 'SystemdCgroup = false'
+        replace: 'SystemdCgroup = true'
+
+    - name: Restart containerd
+      service:
+        name: containerd
+        state: restarted
+        enabled: yes
+
+    - name: Create Kubernetes keyring directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+
+    - name: Add Kubernetes repository key
+      shell: |
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.31/deb/Release.key | \
+        gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Add Kubernetes repository
+      copy:
+        dest: /etc/apt/sources.list.d/kubernetes.list
+        content: |
+          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.31/deb/ /
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Kubernetes packages
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+
+    - name: Hold Kubernetes packages
+      shell: |
+        apt-mark hold kubelet kubeadm kubectl
+
+    - name: Enable kubelet
+      service:
+        name: kubelet
+        enabled: yes
