@@ -1,0 +1,5 @@
+---
+- hosts: worker
+  become: yes
+  tasks:
+    - shell: bash /tmp/join-command.sh

@@ -1,0 +1,5 @@
+---
+- hosts: master
+  become: yes
+  tasks:
+    - shell: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/master/manifests/calico.yaml

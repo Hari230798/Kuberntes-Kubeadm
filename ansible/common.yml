@@ -1,0 +1,6 @@
+---
+- hosts: all
+  become: yes
+  tasks:
+    - shell: swapoff -a
+    - apt: name=containerd state=present update_cache=yes
