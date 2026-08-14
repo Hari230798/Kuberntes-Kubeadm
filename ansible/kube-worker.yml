@@ -1,5 +1,9 @@
 ---
 - hosts: worker
   become: yes
+
   tasks:
-    - shell: bash /tmp/join-command.sh
+
+  - name: Join worker
+    shell: |
+      bash /tmp/join-command.sh
