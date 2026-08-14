@@ -11,4 +11,5 @@ variable "key_name" {
 }
 
 variable "instance_type" {
-  default
+  default = "t3.small"
+}
