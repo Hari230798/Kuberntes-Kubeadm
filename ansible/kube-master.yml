@@ -4,23 +4,28 @@
 
   tasks:
 
-  - name: Initialize Kubernetes
-    shell: |
-      kubeadm init --pod-network-cidr=192.168.0.0/16
-    args:
-      creates: /etc/kubernetes/admin.conf
+    - name: Generate join command
+      command: kubeadm token create --print-join-command
+      register: join_command
 
-  - name: Create kube config
-    shell: |
-      mkdir -p /home/ubuntu/.kube
-      cp -i /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
-      chown ubuntu:ubuntu /home/ubuntu/.kube/config
+    - name: Save join command locally
+      copy:
+        content: "{{ join_command.stdout }}"
+        dest: /tmp/join-command.sh
+        mode: '0755'
 
-  - name: Create join command
-    shell: kubeadm token create --print-join-command
-    register: join_command
+- hosts: worker
+  become: yes
 
-  - name: Save join command
-    copy:
-      content: "{{ join_command.stdout }}"
-      dest: /tmp/join-command.sh
+  tasks:
+
+    - name: Copy join command from control node
+      copy:
+        src: /tmp/join-command.sh
+        dest: /tmp/join-command.sh
+        mode: '0755'
+
+    - name: Join worker to cluster
+      shell: bash /tmp/join-command.sh
+      args:
+        creates: /etc/kubernetes/kubelet.conf
