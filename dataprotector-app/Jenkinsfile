@@ -1,0 +1,110 @@
+// ===========================================================================
+// DataProtector - CI/CD pipeline (build + push images, then Helm deploy)
+// ---------------------------------------------------------------------------
+// CI  : Checkout -> Build backend & frontend images -> Push to Docker Hub
+// CD  : Helm upgrade --install onto the kubeadm cluster
+//
+// The pipeline is triggered by an SCM change (GitHub webhook / poll SCM).
+// A single build number tags both images and is passed to Helm so every push
+// produces an immutable, traceable deployment.
+//
+// Required Jenkins credentials:
+//   - dockerhub-creds : Username/Password (Docker Hub user + token)
+//   - kubeconfig      : Secret file (kubeconfig of the kubeadm cluster)
+// ===========================================================================
+pipeline {
+    agent any
+
+    triggers {
+        // Fallback if no webhook is configured; polls the repo every 2 minutes.
+        pollSCM('H/2 * * * *')
+    }
+
+    environment {
+        DOCKERHUB_USER   = 'hari230798'                 // <-- your Docker Hub username
+        BACKEND_IMAGE    = "${DOCKERHUB_USER}/dataprotector-backend"
+        FRONTEND_IMAGE   = "${DOCKERHUB_USER}/dataprotector-frontend"
+        IMAGE_TAG        = "${BUILD_NUMBER}"
+        RELEASE_NAME     = 'dataprotector'
+        NAMESPACE        = 'dataprotector'
+        HELM_CHART_DIR   = 'helm/dataprotector'
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        // ------------------------- CI -------------------------
+        stage('CI: Build Images') {
+            steps {
+                sh '''
+                    echo "Building backend image..."
+                    docker build -t ${BACKEND_IMAGE}:${IMAGE_TAG} -t ${BACKEND_IMAGE}:latest ./backend
+
+                    echo "Building frontend image..."
+                    docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} -t ${FRONTEND_IMAGE}:latest ./frontend
+                '''
+            }
+        }
+
+        stage('CI: Push Images') {
+            steps {
+                withCredentials([usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DH_USER',
+                        passwordVariable: 'DH_PASS')]) {
+                    sh '''
+                        echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+                        docker push ${BACKEND_IMAGE}:${IMAGE_TAG}
+                        docker push ${BACKEND_IMAGE}:latest
+                        docker push ${FRONTEND_IMAGE}:${IMAGE_TAG}
+                        docker push ${FRONTEND_IMAGE}:latest
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        // ------------------------- CD -------------------------
+        stage('CD: Deploy with Helm') {
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                        echo "Deploying release ${RELEASE_NAME} (tag ${IMAGE_TAG})..."
+                        helm upgrade --install ${RELEASE_NAME} ${HELM_CHART_DIR} \
+                            --namespace ${NAMESPACE} --create-namespace \
+                            --set image.repositoryPrefix=${DOCKERHUB_USER} \
+                            --set image.tag=${IMAGE_TAG} \
+                            --wait --timeout 5m
+
+                        echo "Rollout status:"
+                        kubectl -n ${NAMESPACE} rollout status deploy/backend
+                        kubectl -n ${NAMESPACE} rollout status deploy/frontend
+                        kubectl -n ${NAMESPACE} get pods,svc,ingress
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "CI/CD completed. Images tag=${IMAGE_TAG} deployed to namespace ${NAMESPACE}."
+        }
+        failure {
+            echo 'Pipeline failed - check the stage logs above.'
+        }
+        always {
+            sh 'docker image prune -f || true'
+        }
+    }
+}

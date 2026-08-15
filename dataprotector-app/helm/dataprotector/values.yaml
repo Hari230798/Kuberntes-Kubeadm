@@ -1,0 +1,68 @@
+# ---------------------------------------------------------------------------
+# Global
+# ---------------------------------------------------------------------------
+namespace: dataprotector
+
+image:
+  # Docker Hub user / registry namespace. Overridden by Jenkins at deploy time.
+  registry: docker.io
+  repositoryPrefix: hari230798          # <-- change to your Docker Hub username
+  pullPolicy: IfNotPresent
+  tag: latest                           # Jenkins sets this to the build number
+
+# ---------------------------------------------------------------------------
+# Frontend (nginx + static HTML/JS) - presentation tier
+# ---------------------------------------------------------------------------
+frontend:
+  name: frontend
+  image: dataprotector-frontend
+  replicas: 2
+  containerPort: 80
+  service:
+    type: ClusterIP
+    port: 80
+
+# ---------------------------------------------------------------------------
+# Backend (Flask REST API) - application tier
+# ---------------------------------------------------------------------------
+backend:
+  name: backend
+  image: dataprotector-backend
+  replicas: 2
+  containerPort: 5000
+  service:
+    type: ClusterIP
+    port: 5000
+
+# ---------------------------------------------------------------------------
+# MySQL - data tier
+# ---------------------------------------------------------------------------
+mysql:
+  name: mysql
+  image: mysql:8.0
+  containerPort: 3306
+  storage: 2Gi
+  storageClassName: ""                   # "" = cluster default StorageClass
+  service:
+    port: 3306
+  # These land in a Kubernetes Secret. Change before production use.
+  rootPassword: RootPass123
+  database: dataprotector
+  user: appuser
+  password: AppPass123
+
+# ---------------------------------------------------------------------------
+# Admin credentials (stored in a Secret, consumed by the backend)
+# ---------------------------------------------------------------------------
+admin:
+  username: admin
+  password: Admin@123
+  token: super-secret-admin-token
+
+# ---------------------------------------------------------------------------
+# Ingress (NGINX Ingress Controller, exposed via MetalLB LoadBalancer)
+# ---------------------------------------------------------------------------
+ingress:
+  enabled: true
+  className: nginx
+  host: dataprotector.local

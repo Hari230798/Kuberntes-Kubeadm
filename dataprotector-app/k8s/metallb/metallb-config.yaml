@@ -1,0 +1,32 @@
+# MetalLB IPAddressPool + L2Advertisement
+# ---------------------------------------------------------------------------
+# Apply AFTER installing MetalLB itself (see k8s/metallb/README section).
+#
+# IMPORTANT: The address range below must be free IPs on the SAME L2 subnet
+# as your kubeadm nodes. Your nodes are 172.31.4.145 (master) and
+# 172.31.8.89 (worker) inside the 172.31.0.0/20 VPC subnet, so pick a small
+# unused range in that subnet and make sure the EC2 Security Group allows the
+# traffic. On bare-metal / VirtualBox use your LAN range (e.g. 192.168.x.x).
+#
+# NOTE on AWS: native L2 ARP is restricted on EC2. MetalLB L2 works cleanly on
+# bare-metal / on-prem / VirtualBox kubeadm. On AWS keep this range inside your
+# subnet and disable the source/dest check, or use an on-prem cluster for a
+# textbook MetalLB demo.
+# ---------------------------------------------------------------------------
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: dataprotector-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 172.31.4.240-172.31.4.250
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: dataprotector-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - dataprotector-pool

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DataProtector Support Team - Engineer Registration</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <header>
+        <h1>DataProtector Support Team</h1>
+        <nav>
+            <a href="index.html" class="active">Engineer Registration</a>
+            <a href="admin.html">Admin Login</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="card">
+            <h2>Submit Your Details</h2>
+            <form id="engineerForm">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" name="name" required />
+
+                <label for="experience">Experience (years)</label>
+                <input type="text" id="experience" name="experience" placeholder="e.g. 5 years" required />
+
+                <label for="contact">Contact Number</label>
+                <input type="tel" id="contact" name="contact" pattern="[0-9+ -]{7,15}" required />
+
+                <label for="qualification">Qualification</label>
+                <input type="text" id="qualification" name="qualification" placeholder="e.g. B.E. Computer Science" required />
+
+                <button type="submit">Submit</button>
+            </form>
+            <p id="message" class="message"></p>
+        </section>
+    </main>
+
+    <footer>
+        <p>DataProtector &bull; Tech Support Member Portal</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

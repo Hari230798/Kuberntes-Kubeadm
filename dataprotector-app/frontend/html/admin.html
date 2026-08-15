@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DataProtector Support Team - Admin</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <header>
+        <h1>DataProtector Support Team</h1>
+        <nav>
+            <a href="index.html">Engineer Registration</a>
+            <a href="admin.html" class="active">Admin Login</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="card" id="loginCard">
+            <h2>Admin Login</h2>
+            <form id="loginForm">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required />
+
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required />
+
+                <button type="submit">Login</button>
+            </form>
+            <p id="loginMessage" class="message"></p>
+        </section>
+
+        <section class="card hidden" id="dashboardCard">
+            <div class="dashboard-header">
+                <h2>Engineer Records</h2>
+                <button id="logoutBtn" class="secondary">Logout</button>
+            </div>
+            <table id="engineersTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Experience</th>
+                        <th>Contact</th>
+                        <th>Qualification</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <p id="dashboardMessage" class="message"></p>
+        </section>
+    </main>
+
+    <footer>
+        <p>DataProtector &bull; Tech Support Member Portal</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
