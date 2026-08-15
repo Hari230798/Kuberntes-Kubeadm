@@ -21,7 +21,7 @@ pipeline {
     }
 
     environment {
-        DOCKERHUB_USER   = 'hari230798'                 // <-- your Docker Hub username
+        DOCKERHUB_USER   = 'hariharan230798'                 // <-- your Docker Hub username
         BACKEND_IMAGE    = "${DOCKERHUB_USER}/dataprotector-backend"
         FRONTEND_IMAGE   = "${DOCKERHUB_USER}/dataprotector-frontend"
         IMAGE_TAG        = "${BUILD_NUMBER}"
