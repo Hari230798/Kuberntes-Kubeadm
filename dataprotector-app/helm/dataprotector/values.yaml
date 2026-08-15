@@ -6,7 +6,7 @@ namespace: dataprotector
 image:
   # Docker Hub user / registry namespace. Overridden by Jenkins at deploy time.
   registry: docker.io
-  repositoryPrefix: hari230798          # <-- change to your Docker Hub username
+  repositoryPrefix: hariharan230798          # <-- change to your Docker Hub username
   pullPolicy: IfNotPresent
   tag: latest                           # Jenkins sets this to the build number
 
