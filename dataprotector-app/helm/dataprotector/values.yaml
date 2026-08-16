@@ -65,4 +65,4 @@ admin:
 ingress:
   enabled: true
   className: nginx
-  host: dataprotector.local
+  host: ""
