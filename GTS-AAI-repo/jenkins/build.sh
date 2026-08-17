@@ -28,16 +28,16 @@ echo "==> Pushing image"
 docker push "${IMAGE}:${TAG}"
 docker push "${IMAGE}:latest"
 
-echo "==> Applying Kubernetes manifests"
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/pvc.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
-kubectl apply -f k8s/deployment.yaml
+#echo "==> Applying Kubernetes manifests"
+#kubectl apply -f k8s/namespace.yaml
+#kubectl apply -f k8s/pvc.yaml
+#kubectl apply -f k8s/service.yaml
+#kubectl apply -f k8s/ingress.yaml
+#kubectl apply -f k8s/deployment.yaml
 
-echo "==> Rolling out image ${IMAGE}:${TAG}"
-kubectl -n gts-aai set image deployment/gts-aai web="${IMAGE}:${TAG}"
-kubectl -n gts-aai rollout status deployment/gts-aai --timeout=180s
+#echo "==> Rolling out image ${IMAGE}:${TAG}"
+#kubectl -n gts-aai set image deployment/gts-aai web="${IMAGE}:${TAG}"
+#kubectl -n gts-aai rollout status deployment/gts-aai --timeout=180s
 
-echo "==> Done. Current pods:"
-kubectl -n gts-aai get pods -o wide
+#echo "==> Done. Current pods:"
+#kubectl -n gts-aai get pods -o wide
