@@ -1,0 +1,3 @@
+[submodule "GTS-AAI-repo"]
+	path = GTS-AAI-repo
+	url = https://github.com/Hari230798/Kuberntes-Kubeadm.git
