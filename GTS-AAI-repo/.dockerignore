@@ -1,0 +1,15 @@
+.git
+.gitignore
+*.md
+Steps to do.txt
+cricket.conf
+cricket.service
+k8s
+jenkins
+__pycache__
+*.pyc
+*.pyo
+data
+uploads
+.venv
+venv

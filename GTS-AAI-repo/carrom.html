@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carrom Tournament – GTS INDIA</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0f0a05; }
+    .hero-bg {
+      background: radial-gradient(ellipse at center top, #3d1f0a 0%, #1c0a00 60%, #0f0a05 100%);
+      position: relative; overflow: hidden;
+      min-height: 100vh;
+    }
+    .hero-bg::before {
+      content: ''; position: absolute; inset: 0;
+      background-image:
+        radial-gradient(circle at 25% 50%, rgba(212,160,60,0.06) 0%, transparent 50%),
+        radial-gradient(circle at 75% 50%, rgba(212,160,60,0.06) 0%, transparent 50%);
+    }
+    /* Carrom board ring decoration */
+    .board-ring {
+      position: absolute; border-radius: 50%;
+      border: 1px solid rgba(212,160,60,0.15);
+    }
+    .amber { color: #d4a03c; }
+    .table-row-odd   { background: #1a0f05; }
+    .table-row-even  { background: #150c04; }
+    .thead-amber { background: linear-gradient(90deg, #78350f, #92400e); }
+  </style>
+</head>
+<body class="min-h-screen text-white">
+
+  <!-- ── Hero ───────────────────────────────────────────────────────────── -->
+  <header class="hero-bg">
+
+    <!-- Decorative rings mimicking carrom board circles -->
+    <div class="board-ring" style="width:600px;height:600px;top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+    <div class="board-ring" style="width:400px;height:400px;top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+    <div class="board-ring" style="width:200px;height:200px;top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+
+    <div class="max-w-5xl mx-auto px-6 py-16 text-center relative z-10 flex flex-col justify-end" style="min-height:100vh;">
+
+      <div class="mt-auto">
+        <div class="text-7xl mb-4">🎯</div>
+        <h1 class="text-4xl md:text-5xl font-black tracking-wide text-white">
+          Carrom <span class="amber">Tournament</span>
+        </h1>
+        <p class="text-base md:text-lg text-amber-200/70 mt-2 font-medium">
+          GTS INDIA AAI &amp; Portfolio
+        </p>
+        <div class="flex items-center justify-center gap-3 mt-3">
+          <span class="amber">★</span>
+          <p class="text-xs tracking-[0.3em] font-semibold amber">SKILL. PRECISION. CHAMPION.</p>
+          <span class="amber">★</span>
+        </div>
+      </div>
+
+      <nav class="flex flex-wrap justify-center gap-3 text-sm mt-8">
+        <a href="/" class="px-5 py-2 rounded-full font-medium transition-all
+           border border-white/20 text-white/70 hover:text-white hover:bg-white/10">
+          🏠 Home
+        </a>
+        <a href="/admin" class="px-5 py-2 rounded-full font-medium transition-all
+           border border-white/20 text-white/70 hover:text-white hover:bg-white/10">
+          ⚙ Admin
+        </a>
+      </nav>
+
+      <div class="mt-8 flex flex-col items-center gap-1 text-white/40 animate-bounce pb-4">
+        <span class="text-xs tracking-widest uppercase">Scroll</span>
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+        </svg>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ── Content ────────────────────────────────────────────────────────── -->
+  <main class="max-w-5xl mx-auto px-6 py-10 space-y-10">
+
+    <!-- Coming soon banner -->
+    <div class="rounded-2xl p-8 text-center"
+         style="background:rgba(212,160,60,0.08); border:1px solid rgba(212,160,60,0.3);">
+      <div class="text-5xl mb-4">🪙</div>
+      <h2 class="text-2xl font-bold amber mb-2">Tournament Details Coming Soon</h2>
+      <p class="text-gray-400 text-sm">
+        Match schedule, rules, and results will be published here.<br/>
+        Stay tuned for updates.
+      </p>
+    </div>
+
+    <!-- Placeholder sections matching cricket page style -->
+    <div class="grid md:grid-cols-2 gap-8">
+
+      <section>
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2 amber">
+          <span class="w-1 h-6 rounded-full inline-block" style="background:#d4a03c;"></span>
+          Match Schedule
+        </h2>
+        <div class="rounded-2xl overflow-hidden border border-amber-900/40">
+          <table class="w-full text-sm">
+            <thead class="thead-amber">
+              <tr>
+                <th class="p-3 text-white font-semibold text-left w-14">S.No</th>
+                <th class="p-3 text-white font-semibold text-left">Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="table-row-odd">
+                <td colspan="2" class="p-6 text-center text-gray-500 italic">Schedule will be announced soon</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="text-xl font-bold mb-4 flex items-center gap-2 amber">
+          <span class="w-1 h-6 rounded-full inline-block" style="background:#d4a03c;"></span>
+          Tournament Format
+        </h2>
+        <div class="rounded-2xl p-5 space-y-3"
+             style="background:rgba(212,160,60,0.07); border:1px solid rgba(212,160,60,0.25);">
+          <div class="grid grid-cols-2 gap-3 text-sm text-gray-300">
+            <div class="flex items-center gap-2"><span class="amber">🎯</span> Singles &amp; Doubles</div>
+            <div class="flex items-center gap-2"><span class="amber">🪙</span> Standard Rules</div>
+            <div class="flex items-center gap-2"><span class="amber">🏆</span> Knockout Format</div>
+            <div class="flex items-center gap-2"><span class="amber">⚖</span> Umpire Decision Final</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <footer class="text-center py-8 text-gray-600 text-xs border-t border-amber-900/20 mt-6">
+    GTS INDIA AAI &amp; PORTFOLIO Carrom Tournament
+    &nbsp;·&nbsp; <a href="/" class="hover:text-gray-400 transition-colors">← Back to Home</a>
+  </footer>
+
+</body>
+</html>

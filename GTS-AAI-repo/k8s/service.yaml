@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gts-aai
+  namespace: gts-aai
+  labels:
+    app: gts-aai
+spec:
+  type: ClusterIP
+  selector:
+    app: gts-aai
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000

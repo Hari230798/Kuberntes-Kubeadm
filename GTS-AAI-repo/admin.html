@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cricket Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    function AdminDashboard() {
+      const { useState, useEffect, useMemo } = React;
+
+      const [teams, setTeams]           = useState([]);
+      const [loading, setLoading]       = useState(true);
+      const [error, setError]           = useState('');
+      const [search, setSearch]         = useState('');
+      const [expandedIdx, setExpanded]  = useState(null);
+      const [lastRefresh, setLastRefresh] = useState(null);
+      const [deleteMsg, setDeleteMsg]   = useState('');
+
+      // ── Availability state ────────────────────────────────────────────────
+      const [activeTab, setActiveTab]           = useState('teams');
+      const [avail, setAvail]                   = useState([]);
+      const [availLoading, setAvailLoading]     = useState(false);
+      const [availError, setAvailError]         = useState('');
+      const [availDeleteMsg, setAvailDeleteMsg] = useState('');
+      const [availSearch, setAvailSearch]       = useState('');
+
+      // ── Fetch all registrations ──────────────────────────────────────────
+      const fetchTeams = () => {
+        setLoading(true);
+        fetch('/api/registrations')
+          .then(r => {
+            if (!r.ok) throw new Error('Server returned ' + r.status);
+            return r.json();
+          })
+          .then(data => {
+            setTeams(data);
+            setLastRefresh(new Date());
+            setError('');
+          })
+          .catch(e => setError('Could not load data: ' + e.message))
+          .finally(() => setLoading(false));
+      };
+
+      // ── Fetch availability ────────────────────────────────────────────────
+      const fetchAvail = () => {
+        setAvailLoading(true);
+        fetch('/api/availability')
+          .then(r => { if (!r.ok) throw new Error('Server returned ' + r.status); return r.json(); })
+          .then(data => { setAvail(data); setAvailError(''); })
+          .catch(e => setAvailError('Could not load availability: ' + e.message))
+          .finally(() => setAvailLoading(false));
+      };
+
+      // Load on mount + auto-refresh every 30 s
+      useEffect(() => {
+        fetchTeams();
+        fetchAvail();
+        const id = setInterval(() => { fetchTeams(); fetchAvail(); }, 30000);
+        return () => clearInterval(id);
+      }, []);
+
+      // ── Delete a team ────────────────────────────────────────────────────
+      const handleDelete = (idx) => {
+        const name = teams[idx]?.teamName;
+        if (!window.confirm(`Permanently delete team "${name}"?`)) return;
+        fetch(`/api/registrations/${idx}`, { method: 'DELETE' })
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(() => {
+            setTeams(prev => prev.filter((_, i) => i !== idx));
+            if (expandedIdx === idx) setExpanded(null);
+            setDeleteMsg(`Team "${name}" deleted.`);
+            setTimeout(() => setDeleteMsg(''), 4000);
+          })
+          .catch(() => setError('Failed to delete. Please try again.'));
+      };
+
+      // ── Delete an availability entry ──────────────────────────────────────
+      const handleAvailDelete = (idx) => {
+        const name = avail[idx]?.name;
+        if (!window.confirm(`Remove response from "${name}"?`)) return;
+        fetch(`/api/availability/${idx}`, { method: 'DELETE' })
+          .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+          .then(() => {
+            setAvail(prev => prev.filter((_, i) => i !== idx));
+            setAvailDeleteMsg(`Response from "${name}" removed.`);
+            setTimeout(() => setAvailDeleteMsg(''), 4000);
+          })
+          .catch(() => setAvailError('Failed to delete. Please try again.'));
+      };
+
+      // ── Export CSV ───────────────────────────────────────────────────────
+      const exportCSV = () => {
+        const rows = [['Team#', 'Team Name', 'Captain', 'Player Name', 'Gender', 'Registered At']];
+        teams.forEach((t, ti) => {
+          t.players.forEach(p => {
+            rows.push([ti + 1, t.teamName, t.captain, p.name, p.gender, t.time]);
+          });
+        });
+        const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = Object.assign(document.createElement('a'), {
+          href: url,
+          download: `cricket_registrations_${new Date().toISOString().slice(0, 10)}.csv`
+        });
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      // ── Stats ─────────────────────────────────────────────────────────────
+      const stats = useMemo(() => {
+        const today = new Date().toDateString();
+        return {
+          total:   teams.length,
+          players: teams.reduce((s, t) => s + (t.players?.length || 0), 0),
+          males:   teams.reduce((s, t) => s + (t.players?.filter(p => p.gender === 'Male').length  || 0), 0),
+          females: teams.reduce((s, t) => s + (t.players?.filter(p => p.gender === 'Female').length || 0), 0),
+          today:   teams.filter(t => { try { return new Date(t.time).toDateString() === today; } catch { return false; } }).length,
+        };
+      }, [teams]);
+
+      // ── Filtered list ────────────────────────────────────────────────────
+      const filtered = useMemo(() => {
+        if (!search.trim()) return teams.map((t, i) => ({ ...t, _orig: i }));
+        const q = search.toLowerCase();
+        return teams
+          .map((t, i) => ({ ...t, _orig: i }))
+          .filter(t =>
+            t.teamName.toLowerCase().includes(q) ||
+            t.captain.toLowerCase().includes(q) ||
+            t.players?.some(p => p.name.toLowerCase().includes(q))
+          );
+      }, [teams, search]);
+
+      // ── Export availability CSV ───────────────────────────────────────────
+      const exportAvailCSV = () => {
+        const rows = [['#', 'Name', 'Role', 'Availability', 'Submitted At']];
+        avail.forEach((e, i) => rows.push([i + 1, e.name, e.role, e.availability, e.time]));
+        const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = Object.assign(document.createElement('a'), {
+          href: url, download: `cricket_availability_${new Date().toISOString().slice(0, 10)}.csv`
+        });
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      // ── Availability stats ────────────────────────────────────────────────
+      const availStats = useMemo(() => ({
+        total:      avail.length,
+        available:  avail.filter(e => e.availability === 'Available').length,
+        notAvail:   avail.filter(e => e.availability === 'Not Available').length,
+        batting:    avail.filter(e => e.role === 'Batting').length,
+        bowling:    avail.filter(e => e.role === 'Bowling').length,
+        allRounder: avail.filter(e => e.role === 'All Rounder').length,
+      }), [avail]);
+
+      // ── Filtered availability ─────────────────────────────────────────────
+      const filteredAvail = useMemo(() => {
+        if (!availSearch.trim()) return avail.map((e, i) => ({ ...e, _orig: i }));
+        const q = availSearch.toLowerCase();
+        return avail
+          .map((e, i) => ({ ...e, _orig: i }))
+          .filter(e =>
+            e.name.toLowerCase().includes(q) ||
+            e.role.toLowerCase().includes(q) ||
+            e.availability.toLowerCase().includes(q)
+          );
+      }, [avail, availSearch]);
+
+      // ── Render ────────────────────────────────────────────────────────────
+      return (
+        <div className="min-h-screen bg-gray-100">
+
+          {/* Header */}
+          <header className="bg-green-700 text-white shadow">
+            <div className="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Cricket Admin Dashboard</h1>
+                <p className="text-green-200 text-sm">Mini Cricket Tournament — Registration Management</p>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                {lastRefresh && (
+                  <span className="text-green-200">
+                    Refreshed: {lastRefresh.toLocaleTimeString()}
+                  </span>
+                )}
+                <button
+                  onClick={() => { fetchTeams(); fetchAvail(); }}
+                  disabled={loading || availLoading}
+                  className="bg-white text-green-700 font-semibold px-4 py-1.5 rounded-lg hover:bg-green-50 disabled:opacity-50 transition-colors"
+                >
+                  {(loading || availLoading) ? '⟳ Loading…' : '⟳ Refresh'}
+                </button>
+              </div>
+            </div>
+            {/* Tab bar */}
+            <div className="max-w-7xl mx-auto px-6 flex gap-1 pt-1">
+              {[
+                { key: 'teams',        label: `Team Registrations (${teams.length})` },
+                { key: 'availability', label: `Player Availability (${avail.length})` },
+              ].map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`px-5 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${
+                    activeTab === tab.key
+                      ? 'bg-white text-green-700'
+                      : 'text-green-200 hover:text-white hover:bg-green-600'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </header>
+
+          <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+
+            {activeTab === 'teams' ? (
+              <>
+                {/* Team alerts */}
+                {error && (
+                  <div className="bg-red-50 border border-red-400 text-red-700 rounded-xl px-4 py-3 flex justify-between">
+                    <span>✗ {error}</span>
+                    <button onClick={() => setError('')} className="font-bold">✕</button>
+                  </div>
+                )}
+                {deleteMsg && (
+                  <div className="bg-green-50 border border-green-400 text-green-700 rounded-xl px-4 py-3">
+                    ✓ {deleteMsg}
+                  </div>
+                )}
+
+                {/* Stats cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              {[
+                { label: 'Total Teams',    value: stats.total,   color: 'bg-green-600',  icon: '🏏' },
+                { label: 'Total Players',  value: stats.players, color: 'bg-blue-600',   icon: '👥' },
+                { label: 'Male Players',   value: stats.males,   color: 'bg-sky-500',    icon: '♂' },
+                { label: 'Female Players', value: stats.females, color: 'bg-pink-500',   icon: '♀' },
+                { label: 'Registered Today', value: stats.today, color: 'bg-amber-500',  icon: '📅' },
+              ].map(card => (
+                <div key={card.label} className="bg-white rounded-2xl shadow p-4 flex items-center gap-3">
+                  <span className={`${card.color} text-white text-xl w-10 h-10 rounded-xl flex items-center justify-center shrink-0`}>
+                    {card.icon}
+                  </span>
+                  <div>
+                    <p className="text-2xl font-bold text-gray-800 leading-none">{card.value}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{card.label}</p>
+                  </div>
+                </div>
+              ))}
+                </div>
+
+                {/* Actions bar */}
+                <div className="bg-white rounded-2xl shadow px-5 py-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                  <input
+                    type="search"
+                    placeholder="Search by team name, captain, or player…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                  <div className="flex gap-2 shrink-0">
+                    {search && (
+                      <button
+                        onClick={() => setSearch('')}
+                        className="border rounded-xl px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                      >
+                        Clear
+                      </button>
+                    )}
+                    <button
+                      onClick={exportCSV}
+                      disabled={teams.length === 0}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors"
+                    >
+                      ↓ Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                {/* Teams table */}
+                {loading && teams.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400 text-lg">Loading registrations…</div>
+                ) : filtered.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400">
+                    {search ? `No teams match "${search}"` : 'No teams registered yet.'}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl shadow overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-green-700 text-white">
+                        <tr>
+                          <th className="p-3 text-left w-10">#</th>
+                          <th className="p-3 text-left">Team Name</th>
+                          <th className="p-3 text-left">Captain</th>
+                          <th className="p-3 text-center w-12">♂</th>
+                          <th className="p-3 text-center w-12">♀</th>
+                          <th className="p-3 text-left hidden md:table-cell">Registered At</th>
+                          <th className="p-3 text-center w-28">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filtered.map((team) => {
+                          const origIdx   = team._orig;
+                          const isOpen    = expandedIdx === origIdx;
+                          const males     = team.players?.filter(p => p.gender === 'Male').length   || 0;
+                          const females   = team.players?.filter(p => p.gender === 'Female').length || 0;
+                          const validComp = males === 5 && females === 1;
+
+                          return (
+                            <React.Fragment key={origIdx}>
+                              <tr
+                                className={`border-t cursor-pointer transition-colors ${isOpen ? 'bg-green-50' : 'hover:bg-gray-50'}`}
+                                onClick={() => setExpanded(isOpen ? null : origIdx)}
+                              >
+                                <td className="p-3 text-gray-400 font-mono">{origIdx + 1}</td>
+                                <td className="p-3 font-semibold text-gray-800">
+                                  <span className="flex items-center gap-2">
+                                    {team.teamName}
+                                    {!validComp && (
+                                      <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Invalid</span>
+                                    )}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-gray-700">{team.captain}</td>
+                                <td className="p-3 text-center text-blue-600 font-medium">{males}</td>
+                                <td className="p-3 text-center text-pink-600 font-medium">{females}</td>
+                                <td className="p-3 text-gray-400 text-xs hidden md:table-cell">{team.time}</td>
+                                <td className="p-3 text-center" onClick={e => e.stopPropagation()}>
+                                  <button
+                                    onClick={() => handleDelete(origIdx)}
+                                    className="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 transition-colors"
+                                  >
+                                    ✕ Delete
+                                  </button>
+                                </td>
+                              </tr>
+
+                              {/* Expanded player list */}
+                              {isOpen && (
+                                <tr className="border-t bg-green-50">
+                                  <td colSpan={7} className="px-6 py-4">
+                                    <p className="text-xs font-semibold text-green-700 uppercase tracking-wide mb-2">
+                                      Player Roster — {team.teamName}
+                                    </p>
+                                    <table className="w-full text-sm border-collapse">
+                                      <thead>
+                                        <tr className="bg-green-100 text-green-800">
+                                          <th className="border p-2 text-left w-10">#</th>
+                                          <th className="border p-2 text-left">Player Name</th>
+                                          <th className="border p-2 text-left">Gender</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {(team.players || []).map((p, pi) => (
+                                          <tr key={pi} className={p.gender === 'Female' ? 'bg-pink-50' : 'bg-white'}>
+                                            <td className="border p-2 text-gray-400">{pi + 1}</td>
+                                            <td className="border p-2 font-medium">{p.name}</td>
+                                            <td className="border p-2">
+                                              {p.gender === 'Female'
+                                                ? <span className="text-pink-600 font-medium">♀ Female</span>
+                                                : <span className="text-blue-600">♂ Male</span>}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                    <p className="text-xs text-gray-400 mt-2 md:hidden">Registered: {team.time}</p>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+
+                    <div className="border-t px-5 py-3 text-xs text-gray-400 flex justify-between">
+                      <span>
+                        {search
+                          ? `Showing ${filtered.length} of ${teams.length} teams`
+                          : `${teams.length} team${teams.length !== 1 ? 's' : ''} total`}
+                      </span>
+                      <span>Click a row to expand player list</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Availability alerts */}
+                {availError && (
+                  <div className="bg-red-50 border border-red-400 text-red-700 rounded-xl px-4 py-3 flex justify-between">
+                    <span>✗ {availError}</span>
+                    <button onClick={() => setAvailError('')} className="font-bold">✕</button>
+                  </div>
+                )}
+                {availDeleteMsg && (
+                  <div className="bg-green-50 border border-green-400 text-green-700 rounded-xl px-4 py-3">
+                    ✓ {availDeleteMsg}
+                  </div>
+                )}
+
+                {/* Availability stats cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                  {[
+                    { label: 'Total Responses', value: availStats.total,      color: 'bg-green-600',   icon: '📋' },
+                    { label: 'Available',        value: availStats.available,  color: 'bg-emerald-500', icon: '✓' },
+                    { label: 'Not Available',    value: availStats.notAvail,   color: 'bg-red-500',     icon: '✕' },
+                    { label: 'Batting',          value: availStats.batting,    color: 'bg-blue-600',    icon: '🏏' },
+                    { label: 'Bowling',          value: availStats.bowling,    color: 'bg-purple-600',  icon: '⚾' },
+                    { label: 'All Rounder',      value: availStats.allRounder, color: 'bg-amber-500',   icon: '⭐' },
+                  ].map(card => (
+                    <div key={card.label} className="bg-white rounded-2xl shadow p-4 flex items-center gap-3">
+                      <span className={`${card.color} text-white text-xl w-10 h-10 rounded-xl flex items-center justify-center shrink-0`}>
+                        {card.icon}
+                      </span>
+                      <div>
+                        <p className="text-2xl font-bold text-gray-800 leading-none">{card.value}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{card.label}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Actions bar */}
+                <div className="bg-white rounded-2xl shadow px-5 py-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                  <input
+                    type="search"
+                    placeholder="Search by name, role, or availability…"
+                    value={availSearch}
+                    onChange={e => setAvailSearch(e.target.value)}
+                    className="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                  />
+                  <div className="flex gap-2 shrink-0">
+                    {availSearch && (
+                      <button
+                        onClick={() => setAvailSearch('')}
+                        className="border rounded-xl px-4 py-2 text-sm text-gray-600 hover:bg-gray-50"
+                      >
+                        Clear
+                      </button>
+                    )}
+                    <button
+                      onClick={exportAvailCSV}
+                      disabled={avail.length === 0}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors"
+                    >
+                      ↓ Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                {/* Availability table */}
+                {availLoading && avail.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400 text-lg">Loading availability…</div>
+                ) : filteredAvail.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400">
+                    {availSearch ? `No responses match "${availSearch}"` : 'No availability responses yet.'}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl shadow overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-green-700 text-white">
+                        <tr>
+                          <th className="p-3 text-left w-10">#</th>
+                          <th className="p-3 text-left">Name</th>
+                          <th className="p-3 text-left">Role</th>
+                          <th className="p-3 text-left">Availability</th>
+                          <th className="p-3 text-left hidden md:table-cell">Submitted At</th>
+                          <th className="p-3 text-center w-28">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredAvail.map((entry) => {
+                          const origIdx = entry._orig;
+                          return (
+                            <tr key={origIdx} className="border-t hover:bg-gray-50 transition-colors">
+                              <td className="p-3 text-gray-400 font-mono">{origIdx + 1}</td>
+                              <td className="p-3 font-semibold text-gray-800">{entry.name}</td>
+                              <td className="p-3">
+                                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                                  entry.role === 'Batting'   ? 'bg-blue-100 text-blue-700'    :
+                                  entry.role === 'Bowling'   ? 'bg-purple-100 text-purple-700' :
+                                                               'bg-amber-100 text-amber-700'
+                                }`}>
+                                  {entry.role}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                                  entry.availability === 'Available'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {entry.availability === 'Available' ? '✓ Available' : '✕ Not Available'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-gray-400 text-xs hidden md:table-cell">{entry.time}</td>
+                              <td className="p-3 text-center">
+                                <button
+                                  onClick={() => handleAvailDelete(origIdx)}
+                                  className="bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 transition-colors"
+                                >
+                                  ✕ Remove
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+
+                    <div className="border-t px-5 py-3 text-xs text-gray-400 flex justify-between">
+                      <span>
+                        {availSearch
+                          ? `Showing ${filteredAvail.length} of ${avail.length} responses`
+                          : `${avail.length} response${avail.length !== 1 ? 's' : ''} total`}
+                      </span>
+                      <span>{availStats.available} available · {availStats.notAvail} not available</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+          </main>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<AdminDashboard />);
+  </script>
+</body>
+</html>

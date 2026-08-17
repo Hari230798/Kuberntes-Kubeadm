@@ -1,0 +1,88 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GTS INDIA – Tournaments</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { margin:0; background:#0a1a0a; overflow-x:hidden; }
+    .bg-page {
+      position:fixed; inset:0; z-index:0;
+      background-image: url('/sports-bg.jpg');
+      background-size: cover;
+      background-position: center bottom;
+      background-repeat: no-repeat;
+    }
+    /* Heavier at top for readability, lighter toward bottom to reveal the image */
+    .bg-overlay {
+      position:fixed; inset:0; z-index:1;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,15,5,0.88) 0%,
+        rgba(0,25,10,0.60) 45%,
+        rgba(0,15,5,0.80) 100%
+      );
+    }
+    /* Green sports glow to complement the image */
+    .bg-glow {
+      position:fixed; inset:0; z-index:2;
+      background: radial-gradient(ellipse at center, rgba(30,120,30,0.12) 0%, transparent 65%);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sports image background layers -->
+  <div class="bg-page"></div>
+  <div class="bg-overlay"></div>
+  <div class="bg-glow"></div>
+
+  <!-- Content -->
+  <div class="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
+
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <p class="text-xs tracking-[0.4em] text-green-300/60 uppercase font-semibold mb-3">GTS INDIA AAI &amp; Portfolio</p>
+      <h1 class="text-3xl font-black text-white tracking-wide">GTS INDIA AAI &amp; Portfolio</h1>
+      <p class="text-green-200/60 mt-1 text-sm tracking-widest uppercase">Choose a Tournament</p>
+      <div class="mx-auto mt-4 h-px w-24 bg-gradient-to-r from-transparent via-green-400/50 to-transparent"></div>
+    </div>
+
+    <!-- Two tournament cards -->
+    <div class="grid sm:grid-cols-2 gap-6 w-full max-w-2xl">
+
+    <!-- Cricket -->
+    <a href="/cricket" class="group block rounded-2xl overflow-hidden border border-slate-700
+       hover:border-yellow-400 transition-all duration-300 hover:shadow-xl hover:shadow-yellow-500/10 hover:-translate-y-1">
+      <div class="h-48 bg-cover bg-center"
+           style="background-image:url('/apcl-logo.png'); background-color:#0e2370;"></div>
+      <div class="bg-slate-800 p-5 text-center">
+        <p class="text-2xl mb-2">🏏</p>
+        <h2 class="text-lg font-bold text-white">Cricket Tournament</h2>
+        <p class="text-yellow-400 text-sm font-semibold mt-0.5">APCL 2026</p>
+        <p class="text-gray-500 text-xs mt-2">Schedule · Rules · Results</p>
+      </div>
+    </a>
+
+    <!-- Carrom -->
+    <a href="/carrom" class="group block rounded-2xl overflow-hidden border border-slate-700
+       hover:border-amber-500 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1">
+      <div class="h-48 flex items-center justify-center"
+           style="background:linear-gradient(135deg,#3d1f0a,#1c0a00);">
+        <span class="text-8xl">🎯</span>
+      </div>
+      <div class="bg-slate-800 p-5 text-center">
+        <p class="text-2xl mb-2">🪙</p>
+        <h2 class="text-lg font-bold text-white">Carrom Tournament</h2>
+        <p class="text-amber-500 text-sm font-semibold mt-0.5">Past Edition</p>
+        <p class="text-gray-500 text-xs mt-2">Schedule · Rules · Results</p>
+      </div>
+    </a>
+
+  </div>
+
+  </div>
+
+</body>
+</html>

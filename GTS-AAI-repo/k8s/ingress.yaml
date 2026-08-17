@@ -1,0 +1,25 @@
+# Requires an ingress controller (e.g. ingress-nginx) in the cluster.
+# NOTE: hostnames can't contain underscores, so "GTSAAI_portfolio.com" becomes
+# "gtsaai-portfolio.com". Point this name at your ingress controller's IP
+# (DNS record, or an entry in /etc/hosts for local testing).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gts-aai
+  namespace: gts-aai
+  annotations:
+    # Allow large media uploads (videos) through the ingress.
+    nginx.ingress.kubernetes.io/proxy-body-size: "200m"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: gtsaai-portfolio.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gts-aai
+                port:
+                  number: 80

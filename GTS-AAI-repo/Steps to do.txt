@@ -1,0 +1,50 @@
+Other PC / Phone
+      │
+      │  http://192.168.x.x/          ← server IP, port 80
+      ▼
+  [ nginx ]  ──── serves index.html ──► browser
+      │
+      │  /api/* requests
+      ▼
+  [ Flask : 127.0.0.1:5000 ]  ──── reads/writes ──► /srv/cricket/data/registrations.json
+  
+ 
+
+ Full deploy commands on SUSE
+  
+  # 1. Copy files to the server
+sudo mkdir -p /srv/cricket/data
+sudo cp index.html server.py /srv/cricket/
+
+# Copy the new admin.html
+sudo cp admin.html /srv/cricket/
+
+# Create admin password (run interactively — you'll be prompted)
+sudo sh -c "echo -n 'adminuser:' >> /etc/nginx/.htpasswd"
+sudo sh -c "openssl passwd -apr1 >> /etc/nginx/.htpasswd"
+
+# 2. Install Python deps
+sudo pip3 install flask gunicorn
+
+# 3. Set permissions (nobody user runs the service)
+sudo chown -R nobody:nobody /srv/cricket/data
+
+# 4. nginx config
+sudo cp cricket.conf /etc/nginx/conf.d/cricket.conf
+sudo nginx -t && sudo systemctl reload nginx
+
+# 5. Open firewall port 80 (SUSE uses firewalld) ---- Firewall is OFF in my server
+sudo firewall-cmd --permanent --add-service=http
+sudo firewall-cmd --reload
+
+# 6. Install & start the backend as a system service
+sudo cp cricket.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now cricket
+
+# 7. Verify
+sudo systemctl status cricket
+curl http://localhost/api/registrations
+
+
+Current user name: adminuser -pwd - admin

@@ -1,0 +1,25 @@
+[Unit]
+Description=Cricket Registration Flask Backend
+After=network.target
+
+[Service]
+Type=simple
+User=nobody
+Group=nobody
+WorkingDirectory=/srv/cricket
+
+# Single worker — keeps the JSON file safe (no concurrent writes)
+ExecStart=/usr/bin/gunicorn -w 1 -b 127.0.0.1:5000 --timeout 60 server:app
+
+Restart=always
+RestartSec=5
+
+# The data folder must be writable so registrations persist across reboots
+ReadWritePaths=/srv/cricket/data
+
+# Basic hardening
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

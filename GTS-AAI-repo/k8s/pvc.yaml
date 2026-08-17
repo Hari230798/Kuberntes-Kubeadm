@@ -1,0 +1,28 @@
+# Persistent storage so registrations, availability and uploaded media
+# survive Pod restarts. ReadWriteOnce is fine because the app runs a single
+# replica with a single gunicorn worker.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gts-aai-data
+  namespace: gts-aai
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # storageClassName: <your-storage-class>   # uncomment/set if no default class
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gts-aai-uploads
+  namespace: gts-aai
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  # storageClassName: <your-storage-class>

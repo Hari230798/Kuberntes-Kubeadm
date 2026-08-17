@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gts-aai
+  namespace: gts-aai
+  labels:
+    app: gts-aai
+spec:
+  # Keep at 1: the app persists to JSON files and runs a single gunicorn
+  # worker, so concurrent replicas could corrupt data.
+  replicas: 1
+  strategy:
+    type: Recreate            # RWO volume can't be mounted by two Pods at once
+  selector:
+    matchLabels:
+      app: gts-aai
+  template:
+    metadata:
+      labels:
+        app: gts-aai
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001         # makes mounted volumes writable by the app user
+      containers:
+        - name: web
+          # Jenkins overrides this tag via `kubectl set image` on each build.
+          image: docker.io/hariharan230798/gts-aai:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: uploads
+              mountPath: /app/uploads
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: gts-aai-data
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: gts-aai-uploads
